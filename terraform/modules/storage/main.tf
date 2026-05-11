@@ -4,9 +4,10 @@ variable "name_suffix" { type = string }
 variable "tags" { type = map(string) }
 variable "private_endpoint_subnet_id" { type = string }
 variable "private_dns_zone_id" { type = string }
-variable "reader_principal_ids" {
-  type    = list(string)
-  default = []
+variable "blob_data_contributors" {
+  type        = map(string)
+  description = "Map of role-assignment-name => principal_id."
+  default     = {}
 }
 
 resource "azurerm_storage_account" "this" {
@@ -66,7 +67,7 @@ resource "azurerm_private_endpoint" "blob" {
 
 # Least-privilege data-plane role: read/write blobs in this account only.
 resource "azurerm_role_assignment" "blob_data_contributor" {
-  for_each             = toset(var.reader_principal_ids)
+  for_each             = var.blob_data_contributors
   scope                = azurerm_storage_account.this.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = each.value

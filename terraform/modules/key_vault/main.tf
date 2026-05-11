@@ -4,9 +4,10 @@ variable "name_suffix" { type = string }
 variable "tags" { type = map(string) }
 variable "private_endpoint_subnet_id" { type = string }
 variable "private_dns_zone_id" { type = string }
-variable "secret_reader_principal_ids" {
-  type    = list(string)
-  default = []
+variable "secret_readers" {
+  type        = map(string)
+  description = "Map of role-assignment-name => principal_id. Keys are static so the plan is deterministic."
+  default     = {}
 }
 
 data "azurerm_client_config" "current" {}
@@ -19,7 +20,7 @@ resource "azurerm_key_vault" "this" {
 
   tenant_id                     = data.azurerm_client_config.current.tenant_id
   sku_name                      = "standard"
-  enable_rbac_authorization     = true
+  rbac_authorization_enabled    = true
   purge_protection_enabled      = true
   soft_delete_retention_days    = 30
   public_network_access_enabled = false
@@ -52,7 +53,7 @@ resource "azurerm_private_endpoint" "kv" {
 
 # Least-privilege: the app reads its own secrets only.
 resource "azurerm_role_assignment" "secret_user" {
-  for_each             = toset(var.secret_reader_principal_ids)
+  for_each             = var.secret_readers
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = each.value

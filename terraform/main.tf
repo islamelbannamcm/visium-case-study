@@ -77,7 +77,9 @@ module "storage" {
   private_dns_zone_id        = var.hub.private_dns_zones.blob
 
   # Grant the app's UAMI data-plane access only (no control-plane role).
-  reader_principal_ids = [module.identity.app_identity_principal_id]
+  blob_data_contributors = {
+    app = module.identity.app_identity_principal_id
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -94,7 +96,9 @@ module "key_vault" {
   private_dns_zone_id        = var.hub.private_dns_zones.key_vault
 
   # App reads its own secrets only.
-  secret_reader_principal_ids = [module.identity.app_identity_principal_id]
+  secret_readers = {
+    app = module.identity.app_identity_principal_id
+  }
 }
 
 # -----------------------------------------------------------------------------
