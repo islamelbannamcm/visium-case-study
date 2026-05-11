@@ -9,10 +9,7 @@ variable "app_identity_client_id" { type = string }
 variable "app_identity_principal_id" { type = string }
 variable "container_image" { type = string }
 variable "key_vault_id" { type = string }
-variable "secret_refs" {
-  type    = map(string)
-  default = {}
-}
+variable "key_vault_uri" { type = string }
 variable "storage_account_name" { type = string }
 variable "storage_container" { type = string }
 
@@ -58,16 +55,12 @@ resource "azurerm_container_app" "this" {
     identity_ids = [var.app_identity_id]
   }
 
-  # Secret references resolve at runtime via the workload's UAMI — values
-  # never enter Terraform state or the container image.
-  dynamic "secret" {
-    for_each = var.secret_refs
-    content {
-      name                = secret.key
-      key_vault_secret_id = secret.value
-      identity            = var.app_identity_id
-    }
-  }
+  # Secrets are fetched at runtime by the app using DefaultAzureCredential
+  # against the workload's UAMI, via the Key Vault's private endpoint.
+  # We expose the vault URI via env vars; the app reads secrets on startup.
+  # Deploy-time KV secret references are intentionally NOT used here because
+  # ACA's control plane does not currently route through private endpoints
+  # during validation (a known platform limitation).
 
   ingress {
     external_enabled           = false # internal ingress only
@@ -103,8 +96,8 @@ resource "azurerm_container_app" "this" {
         value = var.storage_container
       }
       env {
-        name        = "DB_CONNECTION_STRING"
-        secret_name = "db-connection-string"
+        name  = "KEY_VAULT_URI"
+        value = var.key_vault_uri
       }
     }
   }

@@ -99,6 +99,12 @@ module "key_vault" {
   secret_readers = {
     app = module.identity.app_identity_principal_id
   }
+
+  # Deployers/pipelines that can write secrets.
+  secret_officers = var.secret_officers
+
+  # Secret names that will be seeded out-of-band — we expose their URIs only.
+  seeded_secret_names = ["db-connection-string"]
 }
 
 # -----------------------------------------------------------------------------
@@ -121,11 +127,10 @@ module "container_app" {
 
   container_image = var.container_image
 
-  # Secrets are mounted by referencing Key Vault — value never enters Terraform state.
-  key_vault_id = module.key_vault.id
-  secret_refs = {
-    "db-connection-string" = module.key_vault.secret_uris["db-connection-string"]
-  }
+  # Secrets are referenced by URI; the app fetches values at runtime via its
+  # UAMI through the vault's private endpoint.
+  key_vault_id  = module.key_vault.id
+  key_vault_uri = module.key_vault.uri
 
   # Env vars pointing the app at the private storage account.
   storage_account_name = module.storage.account_name

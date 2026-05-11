@@ -52,6 +52,12 @@ variable "use_remote_gateways" {
   default     = true
 }
 
+variable "secret_officers" {
+  type        = map(string)
+  description = "Principals (deployers, pipelines) that can write/delete Key Vault secrets."
+  default     = {}
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to all resources."

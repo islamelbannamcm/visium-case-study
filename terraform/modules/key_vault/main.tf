@@ -10,6 +10,12 @@ variable "secret_readers" {
   default     = {}
 }
 
+variable "secret_officers" {
+  type        = map(string)
+  description = "Principals that can write/delete secrets (deployers, pipelines)."
+  default     = {}
+}
+
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "this" {
@@ -59,16 +65,25 @@ resource "azurerm_role_assignment" "secret_user" {
   principal_id         = each.value
 }
 
-# Placeholder secret. Real secret values are written out-of-band (e.g. by an
-# admin or a separate seeding workflow) so they never appear in Terraform state.
-resource "azurerm_key_vault_secret" "db_connection_string" {
-  name         = "db-connection-string"
-  value        = "REPLACE_ME"
-  key_vault_id = azurerm_key_vault.this.id
+# Deployers/pipelines that need to write secrets.
+resource "azurerm_role_assignment" "secret_officer" {
+  for_each             = var.secret_officers
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = each.value
+}
 
-  lifecycle {
-    ignore_changes = [value]
-  }
+# NOTE: Secret VALUES are intentionally NOT managed by Terraform.
+# - Infrastructure (vault, network, RBAC) is provisioned here.
+# - Secret seeding is an out-of-band operation (human via private endpoint, or
+#   a dedicated seeding job inside the network).
+# This keeps secret material out of Terraform state and respects the
+# vault's private-only network posture.
+
+variable "seeded_secret_names" {
+  type        = list(string)
+  description = "Names of secrets that will be seeded out-of-band into this vault. Used to construct stable URIs for downstream services to reference."
+  default     = []
 }
 
 output "id" {
@@ -79,8 +94,12 @@ output "uri" {
   value = azurerm_key_vault.this.vault_uri
 }
 
+# Construct versionless secret URIs without managing the secret values themselves.
+# Downstream services (e.g. Container Apps) reference these URIs; the actual
+# secret values are seeded out-of-band.
 output "secret_uris" {
   value = {
-    "db-connection-string" = azurerm_key_vault_secret.db_connection_string.versionless_id
+    for name in var.seeded_secret_names :
+    name => "${azurerm_key_vault.this.vault_uri}secrets/${name}"
   }
 }
