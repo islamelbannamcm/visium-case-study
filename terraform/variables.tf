@@ -46,6 +46,12 @@ variable "container_image" {
   default     = "mcr.microsoft.com/k8se/quickstart:latest"
 }
 
+variable "use_remote_gateways" {
+  type        = bool
+  description = "Set true with a real hub VPN gateway; false for sandbox POCs."
+  default     = true
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to all resources."

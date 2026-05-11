@@ -95,6 +95,12 @@ resource "azurerm_subnet_network_security_group_association" "pe" {
 # -----------------------------------------------------------------------------
 # Hub <-> Spoke peering
 # -----------------------------------------------------------------------------
+variable "use_remote_gateways" {
+  type        = bool
+  description = "Set to true in real deployments with a hub VPN gateway; false for sandbox POCs."
+  default     = true
+}
+
 resource "azurerm_virtual_network_peering" "spoke_to_hub" {
   name                         = "peer-to-hub"
   resource_group_name          = var.resource_group_name
@@ -103,7 +109,7 @@ resource "azurerm_virtual_network_peering" "spoke_to_hub" {
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
   allow_gateway_transit        = false
-  use_remote_gateways          = true # use the hub's VPN gateway
+  use_remote_gateways          = var.use_remote_gateways
 }
 
 # The reverse peering is created in the hub subscription. In a real platform

@@ -47,6 +47,8 @@ module "networking" {
   }
 
   hub = var.hub
+
+  use_remote_gateways = var.use_remote_gateways
 }
 
 # -----------------------------------------------------------------------------

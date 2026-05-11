@@ -8,3 +8,5 @@ crash.log
 crash.*.log
 *.tfvars.local
 .terraform.lock.hcl
+terraform/envs/sandbox.tfvars
+terraform/backend.sandbox.hcl
